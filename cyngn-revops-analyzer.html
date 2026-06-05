@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cyngn RevOps Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0d10;--surface:#111318;--surface2:#181c23;--surface3:#1e2430;
+  --border:#222830;--border2:#2d3445;
+  --accent:#00d4a8;--accent2:#4a9eff;--accent3:#ff6b35;--accent4:#a78bfa;
+  --text:#dde4f0;--text2:#7a8799;--text3:#3d4a5c;
+  --danger:#f04a5a;--warn:#f5a623;--success:#00d4a8;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;line-height:1.6}
+/* ── Layout ── */
+.header{border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;background:var(--bg);z-index:100}
+.logo{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--accent);letter-spacing:.1em;text-transform:uppercase}
+.logo em{color:var(--text3);font-style:normal}
+.hdr-right{display:flex;align-items:center;gap:1.5rem}
+.conn-badge{font-family:var(--mono);font-size:10px;color:var(--text3);display:flex;align-items:center;gap:.4rem}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--text3);transition:all .3s}
+.dot.on{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.dot.warn{background:var(--warn)}
+.app{display:flex;height:calc(100vh - 52px)}
+.sidebar{width:240px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:1.25rem .75rem;display:flex;flex-direction:column;gap:.125rem}
+.main{flex:1;overflow-y:auto;padding:1.75rem 2rem}
+/* ── Sidebar ── */
+.nav-section{font-family:var(--mono);font-size:9px;font-weight:500;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;padding:.25rem .5rem;margin-top:1.25rem;margin-bottom:.25rem}
+.nav-section:first-child{margin-top:0}
+.nav-btn{display:flex;align-items:center;gap:.6rem;padding:.45rem .75rem;border-radius:6px;font-size:13px;color:var(--text2);cursor:pointer;transition:all .12s;border:none;background:none;width:100%;text-align:left;font-family:var(--sans)}
+.nav-btn:hover{background:var(--surface);color:var(--text)}
+.nav-btn.active{background:var(--surface2);color:var(--accent)}
+.nav-ico{width:14px;height:14px;flex-shrink:0;opacity:.7}
+/* ── Cards ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.25rem;margin-bottom:1rem}
+.card-sm{padding:.875rem}
+.card-title{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.875rem}
+/* ── Forms ── */
+label{font-size:12px;color:var(--text2);display:block;margin-bottom:.35rem}
+input,textarea,select{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:13px;padding:.55rem .8rem;outline:none;transition:border-color .15s}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+textarea{resize:vertical;font-family:var(--mono);font-size:11px;line-height:1.75}
+.field{margin-bottom:.875rem}
+.field-row{display:flex;gap:.75rem;align-items:flex-end}
+.field-row .field{flex:1;margin-bottom:0}
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.5rem 1rem;border-radius:6px;font-size:12px;font-weight:500;font-family:var(--sans);cursor:pointer;transition:all .12s;border:none;white-space:nowrap}
+.btn-primary{background:var(--accent);color:#000}
+.btn-primary:hover{opacity:.9}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2)}
+.btn-ghost:hover{border-color:var(--text3);color:var(--text)}
+.btn-ghost:disabled{opacity:.35;cursor:not-allowed}
+.btn-accent2{background:rgba(74,158,255,.12);border:1px solid rgba(74,158,255,.25);color:var(--accent2)}
+.btn-accent2:hover{background:rgba(74,158,255,.2)}
+.btn-sm{padding:.35rem .75rem;font-size:11px}
+.btn-full{width:100%}
+/* ── Badges ── */
+.badge{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:500;padding:2px 8px;border-radius:4px;letter-spacing:.03em}
+.badge-green{background:rgba(0,212,168,.1);color:var(--accent);border:1px solid rgba(0,212,168,.2)}
+.badge-blue{background:rgba(74,158,255,.1);color:var(--accent2);border:1px solid rgba(74,158,255,.2)}
+.badge-orange{background:rgba(245,166,35,.1);color:var(--warn);border:1px solid rgba(245,166,35,.2)}
+.badge-red{background:rgba(240,74,90,.1);color:var(--danger);border:1px solid rgba(240,74,90,.2)}
+.badge-purple{background:rgba(167,139,250,.1);color:var(--accent4);border:1px solid rgba(167,139,250,.2)}
+.badge-gray{background:rgba(255,255,255,.05);color:var(--text2);border:1px solid var(--border)}
+/* ── Stats ── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1rem}
+.stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.875rem}
+.stat-num{font-family:var(--mono);font-size:24px;font-weight:300;color:var(--text);line-height:1;margin-bottom:.2rem}
+.stat-label{font-size:11px;color:var(--text3)}
+/* ── Tabs ── */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.25rem;gap:0;overflow-x:auto}
+.tab{font-size:12px;color:var(--text3);padding:.5rem .875rem;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--sans);white-space:nowrap}
+.tab:hover{color:var(--text2)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+/* ── Gap items ── */
+.gap-item{border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:.75rem;transition:border-color .12s}
+.gap-item:hover{border-color:var(--border2)}
+.gap-header{display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem}
+.gap-title{font-size:13px;font-weight:500;color:var(--text)}
+.gap-moment{font-size:11px;color:var(--text2);font-family:var(--mono);margin-bottom:.6rem;padding:.4rem .6rem;background:var(--surface2);border-radius:4px}
+.gap-q{font-size:12px;color:var(--text);padding:.35rem .7rem;border-left:2px solid var(--border2);margin-bottom:.35rem;background:var(--surface2);border-radius:0 4px 4px 0}
+.gap-reopen{font-size:11px;color:var(--accent);font-style:italic;margin-top:.5rem}
+.gap-context{font-size:11px;color:var(--text3);margin-top:.4rem;padding:.35rem .6rem;border:1px dashed var(--border2);border-radius:4px}
+/* ── Chat ── */
+.chat-wrap{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:1.5rem}
+.chat-header{background:var(--surface2);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.chat-title{font-family:var(--mono);font-size:11px;color:var(--text2);display:flex;align-items:center;gap:.5rem}
+.chat-messages{max-height:420px;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.875rem}
+.chat-msg{display:flex;gap:.75rem}
+.chat-msg.user{flex-direction:row-reverse}
+.chat-avatar{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:500}
+.chat-avatar.ai{background:rgba(0,212,168,.12);color:var(--accent);border:1px solid rgba(0,212,168,.2)}
+.chat-avatar.user{background:rgba(74,158,255,.12);color:var(--accent2);border:1px solid rgba(74,158,255,.2)}
+.chat-bubble{max-width:82%;padding:.65rem .875rem;border-radius:8px;font-size:13px;line-height:1.65}
+.chat-bubble.ai{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
+.chat-bubble.user{background:rgba(74,158,255,.1);border:1px solid rgba(74,158,255,.2);color:var(--text)}
+.chat-presets{padding:.75rem 1rem;border-top:1px solid var(--border);background:var(--surface)}
+.preset-group{margin-bottom:.6rem}
+.preset-group-label{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem}
+.preset-btns{display:flex;flex-wrap:wrap;gap:.4rem}
+.preset-btn{font-size:11px;padding:.3rem .65rem;border-radius:5px;cursor:pointer;background:var(--surface2);border:1px solid var(--border2);color:var(--text2);font-family:var(--sans);transition:all .12s}
+.preset-btn:hover{border-color:var(--accent);color:var(--accent)}
+.chat-input-row{padding:.75rem 1rem;border-top:1px solid var(--border);display:flex;gap:.5rem;background:var(--surface)}
+.chat-input{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:13px;padding:.5rem .8rem;outline:none;resize:none}
+.chat-input:focus{border-color:var(--accent)}
+/* ── Call list ── */
+.call-item{display:flex;align-items:center;gap:.75rem;padding:.6rem .75rem;border:1px solid var(--border);border-radius:6px;margin-bottom:.4rem;cursor:pointer;transition:all .12s}
+.call-item:hover{border-color:var(--border2)}
+.call-item.selected{border-color:var(--accent);background:rgba(0,212,168,.04)}
+.call-item.current{border-color:var(--accent2);background:rgba(74,158,255,.04)}
+.call-info{flex:1;min-width:0}
+.call-title{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.call-meta{font-size:11px;color:var(--text3);font-family:var(--mono)}
+/* ── History cards ── */
+.history-item{padding:.75rem;border:1px solid var(--border);border-radius:6px;margin-bottom:.5rem}
+.history-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem}
+.history-summary{font-size:12px;color:var(--text2);line-height:1.6}
+.history-threads{margin-top:.5rem;font-size:11px;color:var(--warn);font-family:var(--mono)}
+/* ── Progress ── */
+.progress-bar{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin:.75rem 0}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+/* ── Misc ── */
+.divider{border:none;border-top:1px solid var(--border);margin:1.25rem 0}
+.page-title{font-size:20px;font-weight:300;color:var(--text);margin-bottom:.2rem;letter-spacing:-.02em}
+.page-sub{font-size:12px;color:var(--text3);margin-bottom:1.5rem}
+.prose{font-size:13px;color:var(--text2);line-height:1.75}
+.prose p{margin-bottom:.75rem}
+.row{display:flex;gap:.75rem;align-items:flex-start}
+.col{flex:1}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.1);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0;vertical-align:-2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.msg-err{font-size:12px;color:var(--danger);margin-top:.5rem}
+.msg-ok{font-size:12px;color:var(--success);margin-top:.5rem}
+.msg-info{font-size:12px;color:var(--text2);margin-top:.5rem}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+#loading-overlay{display:none;position:fixed;inset:0;background:rgba(11,13,16,.88);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:.875rem}
+#loading-overlay.show{display:flex}
+.loading-msg{font-family:var(--mono);font-size:12px;color:var(--text2)}
+.loading-sub{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.tag-context{display:inline-block;font-size:10px;font-family:var(--mono);color:var(--accent4);background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.15);border-radius:4px;padding:1px 6px;margin-left:.5rem}
+.check-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
+.check-item{display:flex;align-items:center;gap:.5rem;font-size:12px;color:var(--text2);cursor:pointer;padding:.35rem .5rem;border-radius:5px;transition:background .1s}
+.check-item:hover{background:var(--surface2)}
+.check-item input[type=checkbox]{width:auto}
+.rep-row{display:flex;align-items:center;justify-content:space-between;padding:.55rem 0;border-bottom:1px solid var(--border);font-size:12px}
+.rep-row:last-child{border-bottom:none}
+.context-banner{background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.15);border-radius:8px;padding:.75rem 1rem;margin-bottom:1rem;font-size:12px;color:var(--accent4)}
+.context-banner strong{font-weight:500}
+</style>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="spinner" style="width:22px;height:22px;border-width:2.5px"></div>
+  <div class="loading-msg" id="loading-msg">Working...</div>
+  <div class="loading-sub" id="loading-sub"></div>
+</div>
+
+<header class="header">
+  <div class="logo">Cyngn <em>/</em> RevOps Analyzer</div>
+  <div class="hdr-right">
+    <span class="conn-badge"><span class="dot" id="d-hs"></span>HubSpot</span>
+    <span class="conn-badge"><span class="dot" id="d-gong"></span>Gong</span>
+    <span class="conn-badge"><span class="dot" id="d-ai"></span>Claude</span>
+    <span class="conn-badge"><span class="dot" id="d-sheets"></span>Sheets</span>
+  </div>
+</header>
+
+<div class="app">
+<nav class="sidebar">
+  <div class="nav-section">Analyze</div>
+  <button class="nav-btn active" onclick="showPage('analyze')">
+    <svg class="nav-ico" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5.5"/><path d="M7 4.5v2.5l1.5 1.5"/></svg>
+    Deal Analysis
+  </button>
+  <button class="nav-btn" onclick="showPage('batch')">
+    <svg class="nav-ico" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2.5" width="10" height="2" rx=".75"/><rect x="2" y="6" width="10" height="2" rx=".75"/><rect x="2" y="9.5" width="7" height="2" rx=".75"/></svg>
+    Batch / Team
+  </button>
+  <button class="nav-btn" onclick="showPage('rep')">
+    <svg class="nav-ico" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="4.5" r="2"/><path d="M2 12c0-2.8 2.2-4.5 5-4.5s5 1.7 5 4.5"/></svg>
+    Rep Profile
+  </button>
+  <div class="nav-section">Explore</div>
+  <button class="nav-btn" onclick="showPage('pipeline')">
+    <svg class="nav-ico" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10l3.5-4 2.5 2.5 4-5.5"/></svg>
+    Pipeline
+  </button>
+  <button class="nav-btn" onclick="showPage('team')">
+    <svg class="nav-ico" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="4.5" cy="4.5" r="2"/><circle cx="9.5" cy="4.5" r="2"/><path d="M1 12c0-2 1.6-3 3.5-3M13 12c0-2-1.6-3-3.5-3M7 12c0-2 1.6-3.5 0-3.5"/></svg>
+    Team / Reps
+  </button>
+  <div class="nav-section">Setup</div>
+  <button class="nav-btn" onclick="showPage('settings')">
+    <svg class="nav-ico" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="1.75"/><path d="M7 2v1M7 11v1M2 7h1M11 7h1M3.2 3.2l.7.7M10.1 10.1l.7.7M3.2 10.8l.7-.7M10.1 3.9l.7-.7"/></svg>
+    Settings
+  </button>
+</nav>
+
+<main class="main">
+
+<!-- ── ANALYZE PAGE ── -->
+<div id="page-analyze">
+  <div class="page-title">Deal Analysis</div>
+  <div class="page-sub">Look up a deal to automatically load its call history — analysis uses the full deal arc, not just the current call.</div>
+
+  <div class="row">
+    <div class="col">
+      <!-- Deal lookup -->
+      <div class="card">
+        <div class="card-title">Deal</div>
+        <div class="field-row" style="margin-bottom:.75rem">
+          <div class="field"><label>Company or deal name</label><input type="text" id="a-company" placeholder="e.g. Acme Manufacturing"></div>
+          <button class="btn btn-ghost" onclick="lookupDeal()" style="margin-bottom:0;flex-shrink:0">Look up</button>
+        </div>
+        <div id="a-deal-result"></div>
+      </div>
+
+      <!-- Current call -->
+      <div class="card">
+        <div class="card-title">Current Call</div>
+        <div class="field-row" style="margin-bottom:.75rem">
+          <div class="field"><label>Gong call ID</label><input type="text" id="a-call-id" placeholder="Paste Gong call ID..."></div>
+          <button class="btn btn-ghost" onclick="fetchCurrentCall()" style="flex-shrink:0">Fetch</button>
+        </div>
+        <div id="a-fetch-msg" class="msg-info"></div>
+        <div class="field" style="margin-top:.75rem">
+          <label>Or paste transcript directly</label>
+          <textarea id="a-transcript" rows="10" placeholder="Paste Gong transcript here. Separate multiple calls with ---
+
+[00:00] Rep: Thanks for joining today...
+[01:20] Prospect: Sure — we've been dealing with high turnover on our forklift line..."></textarea>
+        </div>
+        <div class="field-row" style="margin-bottom:0">
+          <div class="field">
+            <label>Deal stage of this call</label>
+            <select id="a-stage">
+              <option value="prospecting">Lead / Prospecting</option>
+              <option value="qualifying">Qualifying</option>
+              <option value="mutual_discovery" selected>Mutual Discovery</option>
+              <option value="knowledge_exchange">Knowledge Exchange</option>
+              <option value="proposal">Proposal and Plan Presentation</option>
+              <option value="negotiation">Negotiation</option>
+              <option value="po_received">PO Received</option>
+              <option value="closed_won">Closed Won</option>
+              <option value="closed_lost">Closed Lost</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Rep name</label>
+            <input type="text" id="a-rep" placeholder="e.g. Bridgette McShea">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <!-- Previous calls -->
+      <div class="card">
+        <div class="card-title">Deal History <span class="tag-context">context for analysis</span></div>
+        <div id="a-prev-calls-empty" style="font-size:12px;color:var(--text3)">Look up a deal to load its call history automatically. Previous calls are summarized and sent as context so the AI understands the full arc, not just this call.</div>
+        <div id="a-prev-calls-list" style="display:none">
+          <div id="a-calls-container"></div>
+          <div style="margin-top:.75rem;font-size:11px;color:var(--text3)">Checked calls will be summarized and included as context. Current call is always included in full.</div>
+        </div>
+      </div>
+
+      <!-- Analysis options -->
+      <div class="card">
+        <div class="card-title">Focus Areas</div>
+        <div class="check-grid">
+          <label class="check-item"><input type="checkbox" id="f-discovery" checked> Discovery quality</label>
+          <label class="check-item"><input type="checkbox" id="f-meddpicc" checked> MEDDPICC coverage</label>
+          <label class="check-item"><input type="checkbox" id="f-coaching" checked> Coaching moments</label>
+          <label class="check-item"><input type="checkbox" id="f-momentum"> Momentum / talk ratio</label>
+          <label class="check-item"><input type="checkbox" id="f-nextstep" checked> Next step quality</label>
+          <label class="check-item"><input type="checkbox" id="f-statusquo" checked> Status quo handling</label>
+          <label class="check-item"><input type="checkbox" id="f-stakeholder"> Stakeholder map</label>
+          <label class="check-item"><input type="checkbox" id="f-giveget"> Give-get (negotiation)</label>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="runAnalysis()" id="a-run-btn">Run analysis</button>
+      <div id="a-run-err" class="msg-err"></div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="a-results" style="display:none">
+    <hr class="divider">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+      <div>
+        <div id="r-title" style="font-size:18px;font-weight:300;letter-spacing:-.01em"></div>
+        <div id="r-meta" style="font-size:11px;color:var(--text3);margin-top:2px;font-family:var(--mono)"></div>
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-ghost btn-sm" onclick="copyReport()">Copy report</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('a-results').style.display='none'">Clear</button>
+      </div>
+    </div>
+    <div id="r-context-used"></div>
+    <div class="stat-grid" id="r-stats"></div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('gaps')">Discovery Gaps</button>
+      <button class="tab" onclick="switchTab('meddpicc')">MEDDPICC</button>
+      <button class="tab" onclick="switchTab('coaching')">Coaching Moments</button>
+      <button class="tab" onclick="switchTab('reopen')">Re-engagement</button>
+      <button class="tab" onclick="switchTab('strengths')">Strengths</button>
+      <button class="tab" onclick="switchTab('raw')">Full Report</button>
+    </div>
+    <div id="tab-gaps"><div id="r-gaps"></div></div>
+    <div id="tab-meddpicc" style="display:none"><div id="r-meddpicc"></div></div>
+    <div id="tab-coaching" style="display:none"><div id="r-coaching"></div></div>
+    <div id="tab-reopen" style="display:none"><div class="card"><div class="prose" id="r-reopen"></div></div></div>
+    <div id="tab-strengths" style="display:none"><div class="card"><div class="prose" id="r-strengths"></div></div></div>
+    <div id="tab-raw" style="display:none"><div class="card"><textarea id="r-raw" rows="18" style="font-size:11px;line-height:1.7" readonly></textarea></div></div>
+    <div style="margin-top:.875rem;padding:.75rem 1rem;background:var(--surface2);border-radius:6px;font-size:12px">
+      <span style="color:var(--accent);font-weight:500">Top next action: </span><span id="r-next" style="color:var(--text2)"></span>
+    </div>
+
+    <!-- Chat window -->
+    <div class="chat-wrap" id="a-chat">
+      <div class="chat-header">
+        <div class="chat-title">
+          <span class="dot on"></span>
+          Ask anything about this deal
+        </div>
+        <span style="font-size:10px;color:var(--text3);font-family:var(--mono)">Full deal context loaded</span>
+      </div>
+      <div class="chat-messages" id="chat-msgs"></div>
+      <div class="chat-presets" id="chat-presets"></div>
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="chat-input" rows="2" placeholder="Ask a follow-up question about this deal, request a draft email, dig deeper on any gap..." onkeydown="chatKeydown(event)"></textarea>
+        <button class="btn btn-primary" onclick="sendChat()" id="chat-send-btn">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── BATCH PAGE ── -->
+<div id="page-batch" style="display:none">
+  <div class="page-title">Batch / Team Analysis</div>
+  <div class="page-sub">Pull calls across a date range, analyze sequentially, and write results to Google Sheets. Runs unattended.</div>
+  <div class="row">
+    <div class="col">
+      <div class="card">
+        <div class="card-title">Pull from Gong</div>
+        <div class="field-row">
+          <div class="field"><label>Days back</label>
+            <select id="b-days"><option value="30">30 days</option><option value="60">60 days</option><option value="90">90 days</option><option value="180" selected>6 months</option><option value="365">12 months</option><option value="548">18 months</option></select>
+          </div>
+          <div class="field"><label>Filter by rep email (blank = all)</label><input type="text" id="b-rep" placeholder="rep@cyngn.com"></div>
+        </div>
+        <button class="btn btn-ghost" onclick="fetchBatchCalls()">Fetch calls</button>
+        <div id="b-fetch-msg" class="msg-info"></div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card">
+        <div class="card-title">Analysis settings</div>
+        <div class="field"><label>Write results to Google Sheets</label>
+          <select id="b-sheets"><option value="yes">Yes — write each result automatically</option><option value="no">No — show on screen only</option></select>
+        </div>
+        <div class="field"><label>Analysis depth</label>
+          <select id="b-depth"><option value="summary">Summary only (faster)</option><option value="full" selected>Full analysis (recommended)</option></select>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="b-call-list"></div>
+  <div id="b-progress" style="display:none">
+    <div class="card">
+      <div class="card-title">Processing</div>
+      <div class="progress-bar"><div class="progress-fill" id="b-progress-fill" style="width:0%"></div></div>
+      <div id="b-progress-msg" style="font-size:12px;color:var(--text2)"></div>
+    </div>
+  </div>
+  <div id="b-results"></div>
+</div>
+
+<!-- ── REP PROFILE PAGE ── -->
+<div id="page-rep" style="display:none">
+  <div class="page-title">Rep Behavioral Profile</div>
+  <div class="page-sub">Analyzes themes, patterns, cadence, and action-response dynamics across all of a rep's calls. Not a scorecard — a behavioral fingerprint.</div>
+  <div class="card">
+    <div class="card-title">Select rep</div>
+    <div class="field-row">
+      <div class="field"><label>Rep</label>
+        <select id="rep-select"><option value="">-- Load team first --</option></select>
+      </div>
+      <div class="field"><label>Date range</label>
+        <select id="rep-days"><option value="90">Last 90 days</option><option value="180" selected>Last 6 months</option><option value="365">Last 12 months</option><option value="548">Last 18 months</option></select>
+      </div>
+    </div>
+    <div style="display:flex;gap:.5rem">
+      <button class="btn btn-ghost" onclick="loadTeamForRep()">Load team</button>
+      <button class="btn btn-primary" onclick="runRepProfile()" id="rep-run-btn">Build profile</button>
+    </div>
+    <div id="rep-msg" class="msg-info"></div>
+  </div>
+  <div id="rep-results"></div>
+</div>
+
+<!-- ── PIPELINE PAGE ── -->
+<div id="page-pipeline" style="display:none">
+  <div class="page-title">Pipeline</div>
+  <div class="page-sub">Open deals from HubSpot grouped by stage. Click any deal to analyze.</div>
+  <button class="btn btn-ghost" onclick="loadPipeline()" style="margin-bottom:1rem">Load pipeline</button>
+  <div id="pipeline-results"><div style="font-size:12px;color:var(--text3)">Click load to pull your open pipeline from HubSpot.</div></div>
+</div>
+
+<!-- ── TEAM PAGE ── -->
+<div id="page-team" style="display:none">
+  <div class="page-title">Team / Reps</div>
+  <div class="page-sub">Active Gong users and their recording status.</div>
+  <button class="btn btn-ghost" onclick="loadTeam()" style="margin-bottom:1rem">Load from Gong</button>
+  <div id="team-results"><div style="font-size:12px;color:var(--text3)">Click load to pull your team from Gong.</div></div>
+</div>
+
+<!-- ── SETTINGS PAGE ── -->
+<div id="page-settings" style="display:none">
+  <div class="page-title">Settings</div>
+  <div class="page-sub">Configure your connections. Keys are saved in your browser only — never sent anywhere except the services they belong to.</div>
+  <div class="card">
+    <div class="card-title">Cloudflare Worker URL</div>
+    <div class="field"><label>Handles all API proxying (HubSpot, Gong, Google Sheets)</label>
+      <input type="text" id="cfg-worker" placeholder="https://revops-api-proxy.your-name.workers.dev">
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Anthropic API Key</div>
+    <div class="field"><label>Powers the AI analysis — never stored anywhere except your browser</label>
+      <input type="password" id="cfg-anthropic" placeholder="sk-ant-...">
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="saveSettings()">Save &amp; test connections</button>
+  <div id="cfg-msg" class="msg-info" style="margin-top:.75rem"></div>
+</div>
+
+</main>
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONFIG & STATE
+// ═══════════════════════════════════════════════════════════════
+let CFG = {
+  worker: localStorage.getItem('cra_worker') || '',
+  anthropic: localStorage.getItem('cra_anthropic') || '',
+};
+
+let S = {
+  deal: null,
+  contacts: [],
+  contactEmails: [],
+  previousCalls: [],       // [{id, title, date, selected, summary, meddpicc, openThreads}]
+  currentTranscript: '',
+  analysisResult: null,
+  chatMessages: [],
+  chatContext: '',
+  lastReport: '',
+  gongUsers: [],
+};
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  if (CFG.worker) document.getElementById('cfg-worker').value = CFG.worker;
+  if (CFG.anthropic) document.getElementById('cfg-anthropic').value = '••••••••••••••';
+  updateDots();
+  if (!CFG.worker || !CFG.anthropic) showPage('settings');
+});
+
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+function showPage(name) {
+  ['analyze','batch','rep','pipeline','team','settings'].forEach(p => {
+    document.getElementById('page-'+p).style.display = p===name?'block':'none';
+  });
+  document.querySelectorAll('.nav-btn').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('onclick')?.includes("'"+name+"'"));
+  });
+}
+
+function switchTab(name) {
+  ['gaps','meddpicc','coaching','reopen','strengths','raw'].forEach(t => {
+    const el = document.getElementById('tab-'+t);
+    if (el) el.style.display = t===name?'block':'none';
+  });
+  document.querySelectorAll('.tab').forEach((el,i) => {
+    const tabs = ['gaps','meddpicc','coaching','reopen','strengths','raw'];
+    el.classList.toggle('active', tabs[i]===name);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════════
+async function saveSettings() {
+  const worker = document.getElementById('cfg-worker').value.trim().replace(/\/$/,'');
+  const anthropic = document.getElementById('cfg-anthropic').value.trim();
+  const msg = document.getElementById('cfg-msg');
+
+  if (worker) { CFG.worker = worker; localStorage.setItem('cra_worker', worker); }
+  if (anthropic && !anthropic.startsWith('•')) { CFG.anthropic = anthropic; localStorage.setItem('cra_anthropic', anthropic); }
+
+  msg.textContent = 'Testing connections...'; msg.className='msg-info';
+  const results = [];
+
+  if (CFG.worker) {
+    try {
+      const r = await proxy('hubspot','/integrations/v1/me');
+      results.push(r.ok ? '✓ HubSpot' : '✗ HubSpot ('+r.status+')');
+      setDot('hs', r.ok);
+    } catch(e) { results.push('✗ HubSpot: '+e.message); setDot('hs',false); }
+
+    try {
+      const r = await proxy('gong','/v2/users?limit=1');
+      results.push(r.ok ? '✓ Gong' : '✗ Gong ('+r.status+')');
+      setDot('gong', r.ok);
+    } catch(e) { results.push('✗ Gong: '+e.message); setDot('gong',false); }
+  }
+
+  if (CFG.anthropic) { setDot('ai',true); results.push('✓ Claude AI'); }
+
+  msg.textContent = results.join(' · ');
+  msg.className = results.every(r=>r.startsWith('✓')) ? 'msg-ok' : 'msg-err';
+}
+
+function updateDots() {
+  setDot('hs', !!CFG.worker);
+  setDot('gong', !!CFG.worker);
+  setDot('ai', !!CFG.anthropic);
+}
+function setDot(id, on) {
+  const el = document.getElementById('d-'+id);
+  if (el) el.className = 'dot'+(on?' on':'');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WORKER PROXY
+// ═══════════════════════════════════════════════════════════════
+async function proxy(target, path, method='GET', body=null) {
+  if (!CFG.worker) throw new Error('Worker URL not configured. Go to Settings first.');
+  const url = `${CFG.worker}?target=${target}&path=${encodeURIComponent(path)}`;
+  const opts = { method, headers: {'Content-Type':'application/json'} };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch(url, opts);
+}
+
+async function callClaude(messages, system, maxTokens=2500) {
+  if (!CFG.anthropic) throw new Error('Anthropic API key not configured. Go to Settings first.');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': CFG.anthropic,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:maxTokens, system, messages }),
+  });
+  if (!res.ok) { const e=await res.json(); throw new Error(e.error?.message||'API error '+res.status); }
+  const data = await res.json();
+  return data.content.map(b=>b.text||'').join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HUBSPOT
+// ═══════════════════════════════════════════════════════════════
+async function lookupDeal() {
+  const company = document.getElementById('a-company').value.trim();
+  if (!company) return;
+  const el = document.getElementById('a-deal-result');
+  el.innerHTML = '<span class="spinner"></span> Looking up...';
+
+  try {
+    const body = {
+      filterGroups:[{filters:[{propertyName:'dealname',operator:'CONTAINS_TOKEN',value:company}]}],
+      properties:['dealname','dealstage','amount','closedate','hubspot_owner_id','hs_deal_stage_probability'],
+      limit:5
+    };
+    const r = await proxy('hubspot','/crm/v3/objects/deals/search','POST',body);
+    const data = await r.json();
+    if (!r.ok||!data.results?.length) {
+      el.innerHTML = `<div style="font-size:12px;color:var(--text3)">No deals found matching "${company}"</div>`;
+      return;
+    }
+
+    const deals = data.results;
+    S.deal = deals[0];
+    el.innerHTML = `
+      <div style="font-size:12px;color:var(--text3);margin-bottom:.5rem">${deals.length} deal${deals.length!==1?'s':''} found — using first match:</div>
+      ${deals.map((d,i)=>`
+      <div class="call-item${i===0?' selected':''}" onclick="selectDeal('${d.id}', this)" data-deal-id="${d.id}" data-deal-name="${(d.properties.dealname||'').replace(/"/g,'')}" data-stage="${d.properties.dealstage||''}">
+        <div class="call-info">
+          <div class="call-title">${d.properties.dealname||'Unnamed deal'}</div>
+          <div class="call-meta">Stage: ${d.properties.dealstage||'—'} · ${d.properties.amount?'$'+Number(d.properties.amount).toLocaleString():'No amount'} · Close: ${d.properties.closedate?new Date(d.properties.closedate).toLocaleDateString():'—'}</div>
+        </div>
+        <span class="badge badge-blue">${d.properties.hs_deal_stage_probability?Math.round(d.properties.hs_deal_stage_probability)+'%':'—'}</span>
+      </div>`).join('')}`;
+
+    // Auto-load contacts + previous calls for first deal
+    await loadDealContext(deals[0].id);
+  } catch(e) {
+    el.innerHTML = `<div class="msg-err">${e.message}</div>`;
+  }
+}
+
+function selectDeal(id, el) {
+  document.querySelectorAll('#a-deal-result .call-item').forEach(i=>i.classList.remove('selected'));
+  el.classList.add('selected');
+  S.deal = {id, properties:{dealname:el.dataset.dealName, dealstage:el.dataset.stage}};
+  loadDealContext(id);
+}
+
+async function loadDealContext(dealId) {
+  const listEl = document.getElementById('a-prev-calls-list');
+  const emptyEl = document.getElementById('a-prev-calls-empty');
+  const container = document.getElementById('a-calls-container');
+  container.innerHTML = '<span class="spinner"></span> Loading deal history...';
+  listEl.style.display='block'; emptyEl.style.display='none';
+
+  try {
+    // Get deal contacts
+    const cr = await proxy('hubspot',`/crm/v3/objects/deals/${dealId}/associations/contacts`);
+    const cdata = await cr.json();
+    const contactIds = (cdata.results||[]).map(c=>c.id);
+    S.contacts = []; S.contactEmails = [];
+
+    if (contactIds.length) {
+      for (const cid of contactIds.slice(0,5)) {
+        const ccr = await proxy('hubspot',`/crm/v3/objects/contacts/${cid}?properties=firstname,lastname,email`);
+        const cc = await ccr.json();
+        if (cc.properties?.email) {
+          S.contactEmails.push(cc.properties.email);
+          S.contacts.push({name:`${cc.properties.firstname||''} ${cc.properties.lastname||''}`.trim(), email:cc.properties.email});
+        }
+      }
+    }
+
+    // Fetch recent Gong calls and match to deal
+    await loadPreviousCalls();
+  } catch(e) {
+    container.innerHTML = `<div class="msg-err">${e.message}</div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GONG — CALL LOADING
+// ═══════════════════════════════════════════════════════════════
+async function loadPreviousCalls() {
+  const container = document.getElementById('a-calls-container');
+  const from = new Date(Date.now()-548*86400000).toISOString();
+  
+  try {
+    const r = await proxy('gong',`/v2/calls?fromDateTime=${from}&limit=100`);
+    const data = await r.json();
+    const allCalls = data.calls||[];
+
+    // Match calls: by contact email in parties OR by company name in title
+    const company = (S.deal?.properties?.dealname||'').split('-')[0].trim().toLowerCase();
+    const matched = allCalls.filter(c=>{
+      const titleMatch = company && c.title?.toLowerCase().includes(company);
+      const partyMatch = S.contactEmails.some(email=>
+        (c.parties||[]).some(p=>p.emailAddress?.toLowerCase()===email.toLowerCase())
+      );
+      return titleMatch||partyMatch;
+    });
+
+    S.previousCalls = matched.map(c=>({
+      id: c.id,
+      title: c.title||'Untitled call',
+      date: c.scheduled||c.started,
+      selected: true,
+      summary: null,
+      meddpicc: null,
+      openThreads: [],
+    })).sort((a,b)=>new Date(a.date)-new Date(b.date));
+
+    if (!S.previousCalls.length) {
+      container.innerHTML = `
+        <div style="font-size:12px;color:var(--text3);margin-bottom:.75rem">No Gong calls matched automatically for this deal. You can still paste a transcript below, or select calls manually.</div>
+        <div style="font-size:11px;color:var(--text3)">Matched on: ${S.contactEmails.length?'contact emails ('+S.contactEmails.join(', ')+')':'no contacts found'} and deal name.</div>`;
+      return;
+    }
+
+    container.innerHTML = `
+      <div style="font-size:12px;color:var(--text2);margin-bottom:.75rem">${S.previousCalls.length} call${S.previousCalls.length!==1?'s':''} matched to this deal. Select which ones to include as context.</div>
+      ${S.previousCalls.map((c,i)=>`
+      <div class="call-item selected" id="prev-call-${i}" onclick="togglePrevCall(${i},this)">
+        <input type="checkbox" checked style="width:auto;flex-shrink:0" onclick="event.stopPropagation();togglePrevCall(${i},this.closest('.call-item'))">
+        <div class="call-info">
+          <div class="call-title">${c.title}</div>
+          <div class="call-meta">${c.date?new Date(c.date).toLocaleDateString():''}</div>
+        </div>
+      </div>`).join('')}
+      <div style="margin-top:.5rem;font-size:11px;color:var(--text3)">These calls will be auto-summarized when you run analysis. Summaries are used as context — the current call is always analyzed in full.</div>`;
+  } catch(e) {
+    container.innerHTML = `<div class="msg-err">${e.message}</div>`;
+  }
+}
+
+function togglePrevCall(i, el) {
+  S.previousCalls[i].selected = !S.previousCalls[i].selected;
+  const cb = el.querySelector('input[type=checkbox]');
+  if (cb) cb.checked = S.previousCalls[i].selected;
+  el.classList.toggle('selected', S.previousCalls[i].selected);
+}
+
+async function fetchCurrentCall() {
+  const callId = document.getElementById('a-call-id').value.trim();
+  if (!callId) return;
+  const msg = document.getElementById('a-fetch-msg');
+  msg.textContent='Fetching transcript...'; msg.className='msg-info';
+  try {
+    const r = await proxy('gong',`/v2/calls/transcript?id=${callId}`);
+    const data = await r.json();
+    if (!r.ok) { msg.textContent='Error: '+(data.errors?.[0]?.message||r.status); return; }
+    const lines = (data.callTranscripts?.[0]?.transcript||[]).flatMap(t=>
+      (t.sentences||[]).map(s=>`[${fmt(s.start)}] ${t.speakerName}: ${s.text}`)
+    );
+    if (lines.length) {
+      document.getElementById('a-transcript').value = lines.join('\n');
+      msg.textContent=`✓ Loaded ${lines.length} lines`; msg.className='msg-ok';
+    } else {
+      msg.textContent='No transcript found for that call ID.'; msg.className='msg-err';
+    }
+  } catch(e) { msg.textContent='Error: '+e.message; msg.className='msg-err'; }
+}
+
+function fmt(ms) {
+  const s=Math.floor((ms||0)/1000);
+  return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DEAL CONTEXT BUILDER
+// ═══════════════════════════════════════════════════════════════
+async function buildDealContext() {
+  const selected = S.previousCalls.filter(c=>c.selected);
+  if (!selected.length) return { text: '', callsUsed: 0 };
+
+  setLoading('Building deal context...','Summarizing '+ selected.length +' previous call'+(selected.length!==1?'s':'')+'...');
+
+  const summaries = [];
+  for (let i=0; i<selected.length; i++) {
+    const call = selected[i];
+    setLoadingSub(`Summarizing call ${i+1} of ${selected.length}: ${call.title}`);
+
+    if (call.summary) { summaries.push(call); continue; }
+
+    // Fetch transcript
+    try {
+      const r = await proxy('gong',`/v2/calls/transcript?id=${call.id}`);
+      const data = await r.json();
+      const lines = (data.callTranscripts?.[0]?.transcript||[]).flatMap(t=>
+        (t.sentences||[]).map(s=>`[${fmt(s.start)}] ${t.speakerName}: ${s.text}`)
+      ).join('\n');
+
+      if (!lines) { summaries.push({...call, summary:'Transcript unavailable.'}); continue; }
+
+      const summary = await callClaude(
+        [{role:'user',content:`Summarize this Cyngn sales call in 200 words for use as context in analyzing a later call in the same deal. Focus on: (1) MEDDPICC elements established or missing, (2) key prospect concerns and buying signals, (3) commitments made by either side, (4) unresolved threads and open questions, (5) next steps agreed. Be specific and factual.\n\nDate: ${call.date?new Date(call.date).toLocaleDateString():''}\nTitle: ${call.title}\n\nTRANSCRIPT:\n${lines.slice(0,6000)}`}],
+        'You are a sales intelligence analyst. Return only the summary, no preamble.',
+        600
+      );
+      call.summary = summary;
+      summaries.push({...call, summary});
+    } catch(e) {
+      summaries.push({...call, summary:`[Could not load: ${e.message}]`});
+    }
+  }
+
+  const contextText = summaries.map((c,i)=>`
+=== Previous Call ${i+1}: ${c.title} (${c.date?new Date(c.date).toLocaleDateString():'Unknown date'}) ===
+${c.summary}`).join('\n\n');
+
+  return { text: contextText, callsUsed: summaries.length };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STAGE DETECTION & PROMPT SELECTION
+// ═══════════════════════════════════════════════════════════════
+function detectStageLabel(stage) {
+  const map = {
+    prospecting:'Lead / Prospecting', qualifying:'Qualifying',
+    mutual_discovery:'Mutual Discovery', knowledge_exchange:'Knowledge Exchange',
+    proposal:'Proposal and Plan Presentation', negotiation:'Negotiation',
+    po_received:'PO Received', po_booked:'PO Booked',
+    closed_won:'Closed Won', closed_lost:'Closed Lost'
+  };
+  return map[stage]||stage;
+}
+
+function isLateStage(stage) {
+  return ['negotiation','po_received','po_booked','closed_won','closed_lost'].includes(stage);
+}
+function isKnowledgeExchange(stage) {
+  return ['knowledge_exchange','proposal'].includes(stage);
+}
+function isEarlyStage(stage) {
+  return ['prospecting','qualifying','mutual_discovery'].includes(stage);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PROMPT LIBRARY
+// ═══════════════════════════════════════════════════════════════
+function buildAnalysisPrompt(transcript, dealContext, dealInfo, stage, focus) {
+  const stageLabel = detectStageLabel(stage);
+  const isLate = isLateStage(stage);
+  const isKE = isKnowledgeExchange(stage);
+  const hasHistory = dealContext.callsUsed > 0;
+
+  const focusAreas = [];
+  if (focus.discovery) focusAreas.push('discovery question quality and gaps');
+  if (focus.meddpicc) focusAreas.push('MEDDPICC coverage');
+  if (focus.coaching) focusAreas.push('specific coachable moments with alternative phrasing');
+  if (focus.momentum) focusAreas.push('talk ratio and momentum');
+  if (focus.nextstep) focusAreas.push('next step quality');
+  if (focus.statusquo) focusAreas.push('status quo and competitive handling');
+  if (focus.stakeholder) focusAreas.push('stakeholder mapping');
+  if (focus.giveget && isLate) focusAreas.push('give-get discipline in negotiation');
+
+  return `You are an expert sales coach analyzing a ${stageLabel} call for Cyngn, which sells autonomous mobile robots (tuggers and forklifts) to industrial and warehouse buyers. This is capital equipment, not SaaS. Average sales cycle is 6-9 months. Buyers are typically Plant Managers, CFOs/VP Ops, Automation Engineers, and Maintenance Leads. The primary competitor is the status quo (manual forklift operations). Key value drivers: labor displacement, throughput improvement, safety incident reduction, payback period. The sales methodology is MEDDPICC.
+
+${hasHistory ? `DEAL HISTORY (${dealContext.callsUsed} previous calls — use this as context to understand the full arc of the deal, not just this call in isolation):
+${dealContext.text}
+
+Note: When identifying gaps or coaching moments, consider whether they represent new failures or patterns that have persisted across multiple calls. If an issue appears in multiple calls, flag it as a recurring pattern — that is higher priority coaching.
+
+---` : ''}
+
+CURRENT CALL — Stage: ${stageLabel}
+Company: ${dealInfo.company||'Unknown'} | Rep: ${dealInfo.rep||'Unknown'}
+${transcript}
+
+---
+
+Analyze this call with focus on: ${focusAreas.join(', ')}.
+
+${isLate ? `IMPORTANT: This is a ${stageLabel} call. Do NOT evaluate it primarily for early discovery questions — instead focus on: give-get discipline, deal continuity (are issues from prior calls showing up as late-stage risk?), negotiation posture, paper process readiness, and whether commitments made in earlier calls are being honored or have drifted.` : ''}
+
+${isKE ? `IMPORTANT: This is a ${stageLabel} call. Focus on: mutual accountability for document sharing, technical qualification completeness, champion commitment, economic buyer criteria understanding, and whether the rep is building toward a compelling proposal or just collecting information.` : ''}
+
+${hasHistory ? 'CRITICAL: Reference specific moments from the deal history when relevant. If a gap appeared in a previous call and appears again here, call it out explicitly as a recurring pattern.' : ''}
+
+Respond ONLY with valid JSON — no markdown, no backticks:
+{
+  "overall_score": "Poor|Fair|Good|Strong",
+  "gap_count": <number>,
+  "call_count": 1,
+  "has_deal_context": ${hasHistory},
+  "context_calls_used": ${dealContext.callsUsed},
+  "overview": "<2-3 sentence summary of this call's quality in the context of the deal>",
+  "forecast_risk": "Low|Medium|High",
+  "forecast_risk_reason": "<why based on discovery quality and deal history>",
+  "gaps": [
+    {
+      "category": "pain|budget|process|competitive|stakeholder|timing|champion|objection|continuity",
+      "title": "<short title>",
+      "is_recurring": <true|false>,
+      "prior_call_reference": "<if recurring, when did this first appear>",
+      "moment": "<when in THIS call the signal appeared and was missed>",
+      "signal_quote": "<what the prospect said that was a signal>",
+      "missed_questions": ["<q1>", "<q2>", "<q3>"],
+      "why_it_matters": "<deal impact>",
+      "reopen_suggestion": "<how to address in next call — specific to Cyngn's motion>"
+    }
+  ],
+  "meddpicc": {
+    "metrics": {"score":1,"evidence":"","gap":""},
+    "economic_buyer": {"score":1,"evidence":"","gap":""},
+    "decision_criteria": {"score":1,"evidence":"","gap":""},
+    "decision_process": {"score":1,"evidence":"","gap":""},
+    "paper_process": {"score":1,"evidence":"","gap":""},
+    "identify_pain": {"score":1,"evidence":"","gap":""},
+    "champion": {"score":1,"evidence":"","gap":""},
+    "competition": {"score":1,"evidence":"","gap":""}
+  },
+  "coaching_moments": [
+    {
+      "what_happened": "<what rep said or did>",
+      "why_it_matters": "<why this was a missed opportunity in Cyngn's context>",
+      "better_approach": "<exact alternative question or response>"
+    }
+  ],
+  "reopen_talk_track": "<2-3 paragraph re-engagement plan for next call — natural, not a checklist>",
+  "strengths": "<what the rep did well>",
+  "recurring_patterns": ["<pattern that has shown up across multiple calls>"],
+  "top_next_action": "<single most important action before next call>",
+  "top_at_risk_meddpicc": ["<dimension1>", "<dimension2>"]
+}`;
+}
+
+const PRESET_PROMPTS = {
+  coaching: {label:'Deep coaching', group:'This call',
+    prompt:(ctx)=>`Based on the analysis already run and the full deal context, identify the 5 most coachable moments in the current call. For each: describe exactly what happened, explain why it matters specifically for selling autonomous industrial equipment to Cyngn's buyer personas, and write the exact alternative response or question the rep should have used. Be direct and specific — this is for a 1:1 coaching session.`},
+  momentum: {label:'Talk ratio & energy', group:'This call',
+    prompt:(ctx)=>`Analyze the energy and talk dynamics of this conversation. Where did the prospect elaborate most? Where did engagement drop? Were there moments where the rep talked over a buying signal, redirected away from a topic the prospect was willing to explore, or kept talking when silence would have been more powerful? Note the approximate talk ratio and flag any sustained stretches where the rep dominated.`},
+  nextstep: {label:'Next step quality', group:'This call',
+    prompt:(ctx)=>`Evaluate how this call ended. Was the next step specific, time-bound, and mutually agreed — or vague and rep-driven? Did the next step reflect a genuine customer behavior milestone (per Cyngn's stage exit criteria) or just a calendar booking? If the next step was weak, write a stronger version the rep could have proposed, including who should be in the room and what the prospect should commit to before that meeting.`},
+  reopen: {label:'Re-engagement plan', group:'This call',
+    prompt:(ctx)=>`Write a specific re-engagement plan for the next conversation with this prospect, based on all the discovery gaps and unresolved threads across the full deal history. Include: the 3 most important unresolved issues and how to reopen each naturally (not as a checklist), a suggested agenda for the next call, who should be in the room and why, and one specific detail from the conversation history the rep can reference to demonstrate active listening. Frame everything in the context of Cyngn's value drivers.`},
+  stakeholder: {label:'Stakeholder map', group:'Deal arc',
+    prompt:(ctx)=>`Build a complete stakeholder map for this deal based on all conversations in the deal history. For each person mentioned or involved: their role, their stance (champion/supporter/neutral/skeptic/blocker/unknown), whether the rep has spoken with them directly, and whether their concerns have been addressed. Flag anyone mentioned but never engaged. Assess the champion specifically — is there someone inside this account actively selling Cyngn when the rep isn't in the room, or is the rep relying on a single contact?`},
+  velocity: {label:'Deal velocity', group:'Deal arc',
+    prompt:(ctx)=>`Map this deal's progression based on the conversation history. For each stage represented in the call history: what drove the deal forward, what caused stalls, and whether the rep was creating momentum or waiting. Flag any moment where the deal moved to the next stage without meeting the exit criteria. Identify where the most time was lost and what could have compressed it.`},
+  vop: {label:'Voice of prospect', group:'Deal arc',
+    prompt:(ctx)=>`Set aside what the rep said and focus only on what the prospect said across all conversations. Summarize their stated and implied priorities, concerns, objections, and buying signals. Note how their language evolved — more engaged or more distant? More specific or more vague? Identify moments where they gave a clear signal — positive or negative — and note whether the rep picked it up. This is the deal as the prospect experienced it.`},
+  ke_quality: {label:'KE phase quality', group:'Knowledge Exchange',
+    prompt:(ctx)=>`Analyze the Knowledge Exchange phase of this deal — the stage where facility layouts, routes, takt times, and integration requirements are shared. Surface: whether success criteria were defined before information sharing began, whether the rep established mutual accountability for document delivery (not just asked and waited), how engaged the technical buyers were, whether the economic buyer's criteria were understood before the proposal was built, and whether a site visit was discussed, proposed, or completed. Flag any moments where scope drifted or the rep accepted vague commitments.`},
+  ke_risk: {label:'KE risk signals', group:'Knowledge Exchange',
+    prompt:(ctx)=>`Review the Knowledge Exchange conversations and identify signals that the deal was at risk that the rep may have minimized. Look for: declining response times, scope questions suggesting the prospect is comparing against something else, infrastructure concerns not escalated to engineering, late-arriving stakeholders, language shifts from collaborative to skeptical. Rank each by severity.`},
+  giveget: {label:'Give-get discipline', group:'Negotiation',
+    prompt:(ctx)=>`Analyze give-get discipline in the negotiation. For every concession made — on price, fleet count, payment terms, delivery, support terms — identify what was given, what was received in return, whether it was proactively offered or extracted under pressure, and whether the rep anchored first. Flag any pattern of unilateral giving. Close with a give-get scorecard and the cumulative cost of one-sided concessions if amount data is available.`},
+  neg_posture: {label:'Negotiation posture', group:'Negotiation',
+    prompt:(ctx)=>`Analyze how the rep managed leverage. Did they understand the prospect's budget cycle and approval timeline and use them appropriately? Did they involve the right resources (applications engineering, finance, leadership) at the right time? Look for moments where the rep gave away leverage unnecessarily — revealing discount authority, expressing urgency, or over-explaining internal approvals. Did they negotiate on total value (labor displacement, throughput, payback period) or default to price?`},
+  paper: {label:'Paper process', group:'Negotiation',
+    prompt:(ctx)=>`Review all conversations related to contract, vendor setup, and PO. Identify: when procurement was first introduced and whether it was a surprise, whether the rep mapped the full internal approval chain before expecting a PO (including vendor number setup, procurement review, legal, IT), whether the rep confirmed the prospect understood the PO must reference Cyngn's quote number and match exactly on price, terms, quantities, and services, and how the rep maintained momentum through procurement. Flag any deal where the PO process extended the close date significantly.`},
+  email_draft: {label:'Draft follow-up email', group:'Actions',
+    prompt:(ctx)=>`Draft a follow-up email from the rep to the primary prospect contact after this call. The email should: reference 2-3 specific things discussed that showed you were listening, confirm any next steps with names and dates, address one open question or concern from the conversation without being heavy-handed, and advance one key MEDDPICC element naturally. Keep it under 200 words. Write it in a natural, direct tone — not corporate or salesy.`},
+  loss_analysis: {label:'Closed lost analysis', group:'Closed Lost',
+    prompt:(ctx)=>`Analyze this closed lost deal and identify the primary failure point. Look across the full deal history and identify: the moment the deal was most likely lost (even if it wasn't recognized then), the discovery questions that were never asked, the prospect signals that were acknowledged but not followed up on, and whether the deal advanced without meeting qualification criteria. What single intervention at what stage would have had the greatest chance of changing the outcome?`},
+};
+
+// ═══════════════════════════════════════════════════════════════
+// ANALYSIS ENGINE
+// ═══════════════════════════════════════════════════════════════
+async function runAnalysis() {
+  const transcript = document.getElementById('a-transcript').value.trim();
+  const stage = document.getElementById('a-stage').value;
+  const rep = document.getElementById('a-rep').value.trim();
+  const company = document.getElementById('a-company').value.trim();
+  const errEl = document.getElementById('a-run-err');
+
+  if (!CFG.anthropic) { errEl.textContent='Add your Anthropic API key in Settings first.'; return; }
+  if (!transcript||transcript.length<80) { errEl.textContent='Please paste a transcript or fetch a call first.'; return; }
+  errEl.textContent='';
+
+  const focus = {
+    discovery: document.getElementById('f-discovery')?.checked,
+    meddpicc: document.getElementById('f-meddpicc')?.checked,
+    coaching: document.getElementById('f-coaching')?.checked,
+    momentum: document.getElementById('f-momentum')?.checked,
+    nextstep: document.getElementById('f-nextstep')?.checked,
+    statusquo: document.getElementById('f-statusquo')?.checked,
+    stakeholder: document.getElementById('f-stakeholder')?.checked,
+    giveget: document.getElementById('f-giveget')?.checked,
+  };
+
+  showLoading('Running analysis...');
+  document.getElementById('a-run-btn').disabled=true;
+
+  try {
+    // Build deal context from previous calls
+    setLoadingMsg('Building deal context...');
+    const dealContext = await buildDealContext();
+
+    setLoadingMsg('Analyzing with AI...');
+    setLoadingSub('This takes 20-30 seconds for full analysis');
+
+    const prompt = buildAnalysisPrompt(
+      transcript.slice(0,10000),
+      dealContext,
+      {company, rep},
+      stage,
+      focus
+    );
+
+    const raw = await callClaude(
+      [{role:'user',content:prompt}],
+      'You are a senior sales coach. Return only valid JSON with no markdown or preamble.',
+      3000
+    );
+
+    const result = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    S.analysisResult = result;
+    S.currentTranscript = transcript;
+
+    // Build chat context
+    S.chatContext = buildChatContext(transcript, dealContext, result, company, rep, stage);
+    S.chatMessages = [];
+
+    renderResults(result, company, rep, stage, dealContext);
+
+    // Write to sheets
+    await writeToSheets({
+      action:'write_analysis',
+      rep, company, dealStatus: detectStageLabel(stage),
+      score: result.overall_score,
+      forecastRisk: result.forecast_risk,
+      gapCount: result.gap_count,
+      gaps: result.gaps,
+      topNextAction: result.top_next_action,
+      callCount: 1,
+      methodology:'MEDDPICC',
+      fullReport: buildTextReport(result, company, rep, stage),
+    });
+
+  } catch(e) {
+    errEl.textContent='Error: '+e.message;
+    console.error(e);
+  } finally {
+    hideLoading();
+    document.getElementById('a-run-btn').disabled=false;
+  }
+}
+
+function buildChatContext(transcript, dealContext, result, company, rep, stage) {
+  return `You are a senior sales coach helping ${rep||'a sales rep'} at Cyngn analyze a ${detectStageLabel(stage)} call with ${company||'a prospect'}.
+
+Cyngn sells autonomous mobile robots (AMRs) — tuggers and forklifts — to industrial and warehouse buyers. Capital equipment sale, 6-9 month cycles. Buyers: Plant Managers, CFOs/VP Ops, Automation Engineers, Maintenance Leads. Primary competitor: status quo (manual forklifts). Methodology: MEDDPICC.
+
+${dealContext.callsUsed>0?`DEAL HISTORY (${dealContext.callsUsed} previous calls):\n${dealContext.text}\n---`:''}
+
+CURRENT CALL TRANSCRIPT (${detectStageLabel(stage)}):
+${transcript.slice(0,8000)}
+
+---
+
+ANALYSIS ALREADY RUN:
+Overall score: ${result.overall_score} | Gaps: ${result.gap_count} | Forecast risk: ${result.forecast_risk}
+Overview: ${result.overview}
+Top next action: ${result.top_next_action}
+Gaps identified: ${(result.gaps||[]).map(g=>`[${g.category}] ${g.title}`).join(', ')}
+
+Answer any questions about this deal, draft emails or talk tracks, or run any of the additional analyses requested. Be specific to this deal — reference actual moments from the transcript and deal history.`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RESULTS RENDERING
+// ═══════════════════════════════════════════════════════════════
+function renderResults(r, company, rep, stage, dealContext) {
+  document.getElementById('a-results').style.display='block';
+  document.getElementById('r-title').textContent = company||'Discovery gap analysis';
+  document.getElementById('r-meta').textContent =
+    `${rep||'Unknown rep'} · ${detectStageLabel(stage)} · ${r.gap_count} gaps · Score: ${r.overall_score} · Forecast risk: ${r.forecast_risk||'—'}`;
+
+  // Context banner
+  const ctxEl = document.getElementById('r-context-used');
+  if (dealContext.callsUsed>0) {
+    ctxEl.innerHTML = `<div class="context-banner"><strong>${dealContext.callsUsed} previous call${dealContext.callsUsed!==1?'s':''} loaded as context.</strong> Gaps marked with a recurring flag appeared in earlier calls — those are higher priority for coaching.</div>`;
+  } else {
+    ctxEl.innerHTML='';
+  }
+
+  // Stats
+  const scoreColor={Poor:'badge-red',Fair:'badge-orange',Good:'badge-blue',Strong:'badge-green'}[r.overall_score]||'badge-gray';
+  const riskColor={Low:'badge-green',Medium:'badge-orange',High:'badge-red'}[r.forecast_risk]||'badge-gray';
+  document.getElementById('r-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-num">${r.gap_count}</div><div c    <div class="stat-label">Gaps identified</div></div>
+    <div class="stat-card"><div style="margin-bottom:.3rem"><span class="badge ${scoreColor}">${r.overall_score}</span></div><div class="stat-label">Discovery score</div></div>
+    <div class="stat-card"><div style="margin-bottom:.3rem"><span class="badge ${riskColor}">${r.forecast_risk||'—'} risk</span></div><div class="stat-label">Forecast impact</div></div>
+    <div class="stat-card"><div style="font-size:12px;color:var(--text2);line-height:1.5;margin-top:.25rem">${(r.top_at_risk_meddpicc||[]).join(' · ')||'—'}</div><div class="stat-label">At-risk MEDDPICC</div></div>`;
+
+  // Gaps tab
+  const catColors={pain:'badge-red',budget:'badge-orange',process:'badge-blue',competitive:'badge-red',stakeholder:'badge-blue',timing:'badge-orange',champion:'badge-green',objection:'badge-orange',continuity:'badge-purple'};
+  const overviewCard = `<div class="card card-sm" style="margin-bottom:1rem"><div class="prose">${r.overview}</div></div>`;
+  const gapCards = (r.gaps||[]).map(g=>`
+    <div class="gap-item">
+      <div class="gap-header">
+        <span class="badge ${catColors[g.category]||'badge-gray'}">${g.category}</span>
+        <span class="gap-title">${g.title}</span>
+        ${g.is_recurring?'<span class="badge badge-purple" title="Appeared in previous calls">recurring</span>':''}
+      </div>
+      ${g.signal_quote?`<div class="gap-moment">Signal: "${g.signal_quote}"</div>`:''}
+      <div class="gap-moment" style="${g.signal_quote?'margin-top:.35rem':''}">When: ${g.moment}</div>
+      ${g.is_recurring&&g.prior_call_reference?`<div class="gap-context">&#x21BB; Also appeared: ${g.prior_call_reference}</div>`:''}
+      <div style="font-size:11px;font-weight:500;color:var(--text3);margin:.5rem 0 .35rem">Should have asked:</div>
+      ${(g.missed_questions||[]).map(q=>`<div class="gap-q">${q}</div>`).join('')}
+      ${g.why_it_matters?`<div style="font-size:11px;color:var(--text3);margin-top:.4rem">Why it matters: ${g.why_it_matters}</div>`:''}
+      ${g.reopen_suggestion?`<div class="gap-reopen">&#8594; Next call: ${g.reopen_suggestion}</div>`:''}
+    </div>`).join('');
+  document.getElementById('r-gaps').innerHTML = overviewCard + gapCards;
+
+  // MEDDPICC tab
+  const dims=['metrics','economic_buyer','decision_criteria','decision_process','paper_process','identify_pain','champion','competition'];
+  const dimLabels={metrics:'Metrics',economic_buyer:'Economic Buyer',decision_criteria:'Decision Criteria',decision_process:'Decision Process',paper_process:'Paper Process',identify_pain:'Identify Pain',champion:'Champion',competition:'Competition'};
+  const mData = r.meddpicc||{};
+  document.getElementById('r-meddpicc').innerHTML = `<div class="card">
+    ${dims.map(d=>{
+      const dm=mData[d]||{};
+      const score=dm.score||1;
+      const color=score>=4?'var(--success)':score===3?'var(--accent2)':score===2?'var(--warn)':'var(--danger)';
+      const bars=Array.from({length:5},(_,i)=>`<div style="width:12px;height:12px;border-radius:2px;background:${i<score?color:'var(--surface3)'}"></div>`).join('');
+      return `<div class="rep-row">
+        <div style="width:160px;flex-shrink:0"><span style="font-size:12px;font-weight:500;color:var(--text)">${dimLabels[d]}</span></div>
+        <div style="display:flex;gap:3px;flex-shrink:0">${bars}</div>
+        <div style="flex:1;padding-left:.875rem">
+          ${dm.evidence?`<div style="font-size:11px;color:var(--text2);margin-bottom:.2rem">${dm.evidence}</div>`:''}
+          ${dm.gap?`<div style="font-size:11px;color:var(--warn)">${dm.gap}</div>`:''}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  // Coaching tab
+  document.getElementById('r-coaching').innerHTML = (r.coaching_moments||[]).map((m,i)=>`
+    <div class="card card-sm" style="margin-bottom:.75rem">
+      <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:.4rem">Moment ${i+1}: ${m.what_happened}</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:.5rem">${m.why_it_matters}</div>
+      <div style="font-size:12px;color:var(--accent);padding:.4rem .75rem;border-left:2px solid var(--accent);background:rgba(0,212,168,.04);border-radius:0 4px 4px 0">Better approach: ${m.better_approach}</div>
+    </div>`).join('');
+
+  // Re-engagement tab
+  document.getElementById('r-reopen').innerHTML = r.reopen_talk_track
+    ? r.reopen_talk_track.split('\n').filter(Boolean).map(p=>`<p>${p}</p>`).join('')
+    : '<span style="color:var(--text3)">Re-engagement plan shown for open deals.</span>';
+
+  // Strengths tab
+  const patternsHtml = (r.recurring_patterns||[]).length
+    ? `<hr style="border:none;border-top:1px solid var(--border);margin:.875rem 0"><div style="font-size:11px;font-weight:500;color:var(--text3);margin-bottom:.4rem">Recurring patterns across deal history:</div>${r.recurring_patterns.map(p=>`<div style="font-size:12px;color:var(--warn);padding:.3rem .6rem;border-left:2px solid var(--warn);margin-bottom:.3rem">${p}</div>`).join('')}`
+    : '';
+  document.getElementById('r-strengths').innerHTML = `<p>${r.strengths||'&#8212;'}</p>${patternsHtml}`;
+
+  document.getElementById('r-next').textContent = r.top_next_action||'&#8212;';
+
+  const report = buildTextReport(r, company, rep, stage);
+  S.lastReport = report;
+  document.getElementById('r-raw').value = report;
+
+  initChat(stage, dealContext.callsUsed);
+  document.getElementById('a-results').scrollIntoView({behavior:'smooth'});
+}
+
+function buildTextReport(r, company, rep, stage) {
+  const lines = [
+    'CYNGN SALES ANALYSIS REPORT',
+    '============================',
+    `Company: ${company||'&#8212;'} | Rep: ${rep||'&#8212;'} | Stage: ${detectStageLabel(stage)}`,
+    `Score: ${r.overall_score} | Gaps: ${r.gap_count} | Forecast risk: ${r.forecast_risk||'&#8212;'}`,
+    '', `OVERVIEW\n${r.overview}`, ''
+  ];
+  (r.gaps||[]).forEach((g,i)=>{
+    lines.push(`GAP ${i+1}: ${g.title} [${g.category.toUpperCase()}]${g.is_recurring?' RECURRING':''}`);
+    if(g.signal_quote) lines.push(`Signal: "${g.signal_quote}"`);
+    lines.push(`When: ${g.moment}`);
+    if(g.is_recurring&&g.prior_call_reference) lines.push(`Also appeared: ${g.prior_call_reference}`);
+    lines.push('Should have asked:');
+    (g.missed_questions||[]).forEach(q=>lines.push(`  - ${q}`));
+    if(g.why_it_matters) lines.push(`Why it matters: ${g.why_it_matters}`);
+    if(g.reopen_suggestion) lines.push(`Next call: ${g.reopen_suggestion}`);
+    lines.push('');
+  });
+  if(r.meddpicc){
+    lines.push('MEDDPICC SCORES');
+    const dims=['metrics','economic_buyer','decision_criteria','decision_process','paper_process','identify_pain','champion','competition'];
+    dims.forEach(d=>{const dm=r.meddpicc[d]||{};lines.push(`  ${d.replace('_',' ')}: ${dm.score||'?'}/5 - ${dm.gap||dm.evidence||'?'}`)});
+    lines.push('');
+  }
+  if(r.coaching_moments?.length){
+    lines.push('COACHING MOMENTS');
+    r.coaching_moments.forEach((m,i)=>{lines.push(`${i+1}. ${m.what_happened}`);lines.push(`   Better: ${m.better_approach}`)});
+    lines.push('');
+  }
+  if(r.reopen_talk_track){lines.push('RE-ENGAGEMENT PLAN');lines.push(r.reopen_talk_track);lines.push('');}
+  if(r.recurring_patterns?.length){lines.push('RECURRING PATTERNS');r.recurring_patterns.forEach(p=>lines.push(`- ${p}`));lines.push('');}
+  lines.push('STRENGTHS');lines.push(r.strengths||'&#8212;');lines.push('');
+  lines.push('TOP NEXT ACTION');lines.push(r.top_next_action||'&#8212;');
+  return lines.join('\n');
+}
+
+function copyReport() {
+  navigator.clipboard.writeText(S.lastReport).then(()=>{
+    const btn=document.querySelector('[onclick="copyReport()"]');
+    if(btn){btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy report',2000);}
+  });
+}
+
+// ==================== CHAT WINDOW ====================
+function initChat(stage, contextCallsUsed) {
+  S.chatMessages = [];
+  const msgs = document.getElementById('chat-msgs');
+  msgs.innerHTML = `<div class="chat-msg"><div class="chat-avatar ai">AI</div><div class="chat-bubble ai">Analysis complete. I have the full call transcript${contextCallsUsed>0?` and ${contextCallsUsed} previous call${contextCallsUsed!==1?'s':''} as context`:''} loaded. Ask me anything about this deal.</div></div>`;
+  buildPresetButtons(stage);
+}
+
+function buildPresetButtons(stage) {
+  const container = document.getElementById('chat-presets');
+  const always = ['coaching','momentum','nextstep','reopen','stakeholder','velocity','vop','email_draft'];
+  const ke = ['ke_quality','ke_risk'];
+  const neg = ['giveget','neg_posture','paper'];
+  const loss = ['loss_analysis'];
+  let show = [...always];
+  if (isKnowledgeExchange(stage)) show = [...show,...ke];
+  if (isLateStage(stage)) show = [...show,...neg];
+  if (stage==='closed_lost') show = [...show,...loss];
+  const groups = {};
+  show.forEach(id=>{
+    const p = PRESET_PROMPTS[id];
+    if(!p) return;
+    if(!groups[p.group]) groups[p.group]=[];
+    groups[p.group].push({id,...p});
+  });
+  container.innerHTML = Object.entries(groups).map(([group,prompts])=>`
+    <div class="preset-group">
+      <div class="preset-group-label">${group}</div>
+      <div class="preset-btns">${prompts.map(p=>`<button class="preset-btn" onclick="runPreset('${p.id}')">${p.label}</button>`).join('')}</div>
+    </div>`).join('');
+}
+
+async function runPreset(id) {
+  const p = PRESET_PROMPTS[id];
+  if (!p) return;
+  const question = typeof p.prompt === 'function' ? p.prompt(S.chatContext) : p.prompt;
+  await sendChatMessage(question, p.label);
+}
+
+function chatKeydown(e) {
+  if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value='';
+  await sendChatMessage(msg, null);
+}
+
+async function sendChatMessage(message, displayLabel) {
+  if (!CFG.anthropic) { addChatMsg('ai','Add your Anthropic API key in Settings first.'); return; }
+  if (!S.chatContext) { addChatMsg('ai','Run an analysis first to load deal context.'); return; }
+  addChatMsg('user', displayLabel||message);
+  S.chatMessages.push({role:'user',content:message});
+  const sendBtn = document.getElementById('chat-send-btn');
+  sendBtn.disabled=true;
+  addChatMsg('ai','<span class="spinner"></span>', 'typing-msg');
+  try {
+    const response = await callClaude(S.chatMessages, S.chatContext, 2000);
+    removeTyping();
+    addChatMsg('ai', response.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>'));
+    S.chatMessages.push({role:'assistant',content:response});
+  } catch(e) {
+    removeTyping();
+    addChatMsg('ai','Error: '+e.message);
+  } finally {
+    sendBtn.disabled=false;
+  }
+}
+
+function addChatMsg(role, content, id) {
+  const msgs = document.getElementById('chat-msgs');
+  const div = document.createElement('div');
+  div.className='chat-msg '+role;
+  if(id) div.id=id;
+  div.innerHTML=`<div class="chat-avatar ${role}">${role==='ai'?'AI':'You'}</div><div class="chat-bubble ${role}">${content}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+function removeTyping() { const el=document.getElementById('typing-msg'); if(el) el.remove(); }
+
+// ==================== SHEETS WRITER ====================
+async function writeToSheets(data) {
+  if (!CFG.worker) return;
+  try {
+    await proxy('sheets','','POST',data);
+    setDot('sheets',true);
+  } catch(e) { console.warn('Sheets write failed:',e.message); }
+}
+
+// ==================== BATCH PROCESSOR ====================
+async function fetchBatchCalls() {
+  const days = document.getElementById('b-days').value;
+  const repFilter = document.getElementById('b-rep').value.trim().toLowerCase();
+  const msg = document.getElementById('b-fetch-msg');
+  msg.textContent='Fetching calls...'; msg.className='msg-info';
+  try {
+    const from = new Date(Date.now()-days*86400000).toISOString();
+    const r = await proxy('gong',`/v2/calls?fromDateTime=${from}&limit=50`);
+    const data = await r.json();
+    if (!r.ok) { msg.textContent='Error: '+(data.errors?.[0]?.message||r.status); return; }
+    let calls = data.calls||[];
+    if (repFilter) calls = calls.filter(c=>(c.parties||[]).some(p=>p.emailAddress?.toLowerCase().includes(repFilter)));
+    msg.textContent=`${calls.length} call${calls.length!==1?'s':''} found.`; msg.className='msg-ok';
+    document.getElementById('b-call-list').innerHTML = calls.length ? `
+      <div class="card"><div class="card-title">Select calls to analyze</div>
+        ${calls.map((c,i)=>`<div class="call-item selected" id="bcall-${i}" onclick="this.classList.toggle('selected')">
+          <input type="checkbox" checked style="width:auto;flex-shrink:0">
+          <div class="call-info"><div class="call-title">${c.title||'Untitled'}</div>
+          <div class="call-meta">${c.scheduled?new Date(c.scheduled).toLocaleDateString():''} - ${c.id}</div></div>
+        </div>`).join('')}
+        <div style="margin-top:1rem"><button class="btn btn-primary" onclick="runBatch(window._batchCalls)">Analyze selected</button></div>
+      </div>` : '';
+    window._batchCalls = calls;
+  } catch(e) { msg.textContent='Error: '+e.message; msg.className='msg-err'; }
+}
+
+async function runBatch(calls) {
+  const selected = (calls||[]).filter((_,i)=>document.getElementById('bcall-'+i)?.classList.contains('selected'));
+  if (!selected.length) return;
+  document.getElementById('b-progress').style.display='block';
+  const results = [];
+  for (let i=0; i<selected.length; i++) {
+    const call = selected[i];
+    const pct = Math.round((i/selected.length)*100);
+    document.getElementById('b-progress-fill').style.width=pct+'%';
+    document.getElementById('b-progress-msg').textContent=`Processing ${i+1} of ${selected.length}: ${call.title||'Untitled'}`;
+    try {
+      const r = await proxy('gong',`/v2/calls/transcript?id=${call.id}`);
+      const tdata = await r.json();
+      const lines = (tdata.callTranscripts?.[0]?.transcript||[]).flatMap(t=>(t.sentences||[]).map(s=>`[${fmt(s.start)}] ${t.speakerName}: ${s.text}`)).join('\n');
+      if (!lines) { results.push({call,error:'No transcript'}); continue; }
+      const prompt = buildAnalysisPrompt(lines.slice(0,8000),{text:'',callsUsed:0},{company:call.title,rep:''},'mutual_discovery',{discovery:true,meddpicc:true,coaching:true,nextstep:true,statusquo:true});
+      const raw = await callClaude([{role:'user',content:prompt}],'Return only valid JSON.',2500);
+      const result = JSON.parse(raw.replace(/```json|```/g,'').trim());
+      results.push({call,result});
+      if (document.getElementById('b-sheets').value==='yes') {
+        await writeToSheets({action:'write_batch_row',rep:'',company:call.title||'',dealStatus:'',score:result.overall_score,forecastRisk:result.forecast_risk,gapCount:result.gap_count,gaps:result.gaps,topNextAction:result.top_next_action,callCount:1,methodology:'MEDDPICC',fullReport:buildTextReport(result,call.title||'','','mutual_discovery')});
+      }
+    } catch(e) { results.push({call,error:e.message}); }
+  }
+  document.getElementById('b-progress-fill').style.width='100%';
+  document.getElementById('b-progress-msg').textContent='Complete.';
+  const ok=results.filter(r=>r.result), err=results.filter(r=>r.error);
+  document.getElementById('b-results').innerHTML=`<div class="card"><div class="card-title">Results - ${ok.length} analyzed</div>
+    ${ok.map(r=>`<div class="call-item" style="cursor:default"><div class="call-info"><div class="call-title">${r.call.title||'Untitled'}</div><div class="call-meta">${r.result.gap_count} gaps - Score: ${r.result.overall_score} - ${r.result.forecast_risk||'?'} risk</div></div><span class="badge ${r.result.overall_score==='Strong'?'badge-green':r.result.overall_score==='Good'?'badge-blue':r.result.overall_score==='Fair'?'badge-orange':'badge-red'}">${r.result.overall_score}</span></div>`).join('')}
+    ${err.length?`<div style="margin-top:.5rem;font-size:11px;color:var(--danger)">${err.map(r=>`${r.call.title}: ${r.error}`).join('<br>')}</div>`:''}
+    ${document.getElementById('b-sheets').value==='yes'?'<div style="margin-top:.75rem;font-size:12px;color:var(--success)">Results written to Google Sheets</div>':''}</div>`;
+}
+
+// ==================== REP PROFILE ====================
+async function loadTeamForRep() {
+  const msg=document.getElementById('rep-msg');
+  msg.textContent='Loading...'; msg.className='msg-info';
+  try {
+    const r=await proxy('gong','/v2/users?limit=100');
+    const data=await r.json();
+    S.gongUsers=(data.users||[]).filter(u=>u.active&&u.settings?.webConferencesRecorded);
+    const sel=document.getElementById('rep-select');
+    sel.innerHTML=S.gongUsers.map(u=>`<option value="${u.emailAddress}">${u.firstName} ${u.lastName} - ${u.title||'No title'}</option>`).join('');
+    msg.textContent=`${S.gongUsers.length} reps with recording enabled.`; msg.className='msg-ok';
+  } catch(e){ msg.textContent='Error: '+e.message; msg.className='msg-err'; }
+}
+
+async function runRepProfile() {
+  const repEmail=document.getElementById('rep-select').value;
+  const days=document.getElementById('rep-days').value;
+  const msg=document.getElementById('rep-msg');
+  if(!repEmail){msg.textContent='Select a rep first.';return;}
+  if(!CFG.anthropic){msg.textContent='Add Anthropic key in Settings.';return;}
+  const rep=S.gongUsers.find(u=>u.emailAddress===repEmail);
+  showLoading('Building rep profile...','Fetching calls for '+rep?.firstName+'...');
+  try {
+    const from=new Date(Date.now()-days*86400000).toISOString();
+    const r=await proxy('gong',`/v2/calls?fromDateTime=${from}&limit=50`);
+    const data=await r.json();
+    const repCalls=(data.calls||[]).filter(c=>(c.parties||[]).some(p=>p.emailAddress?.toLowerCase()===repEmail.toLowerCase()));
+    const transcripts=[];
+    for(let i=0;i<Math.min(repCalls.length,10);i++){
+      setLoadingSub(`Reading call ${i+1} of ${Math.min(repCalls.length,10)}`);
+      try{
+        const tr=await proxy('gong',`/v2/calls/transcript?id=${repCalls[i].id}`);
+        const td=await tr.json();
+        const lines=(td.callTranscripts?.[0]?.transcript||[]).flatMap(t=>(t.sentences||[]).map(s=>`[${fmt(s.start)}] ${t.speakerName}: ${s.text}`)).join('\n');
+        if(lines) transcripts.push(`=== ${repCalls[i].title||repCalls[i].id} (${repCalls[i].scheduled?new Date(repCalls[i].scheduled).toLocaleDateString():''})\n${lines.slice(0,2000)}`);
+      }catch(e){}
+    }
+    setLoadingMsg('Building behavioral profile...');
+    const prompt=`You are a senior sales coach at Cyngn building a behavioral fingerprint for ${rep?.firstName||''} ${rep?.lastName||''}.
+
+Cyngn sells autonomous mobile robots to industrial buyers. Capital equipment, 6-9 month cycles. MEDDPICC methodology. Primary competitor is the status quo (manual forklifts).
+
+Analyze ${transcripts.length} calls and write a behavioral profile with these sections:
+
+1. DISCOVERY PATTERNS - what they ask well, what they skip, open vs closed questions, drill down behavior
+2. CONVERSATION CONTINUITY - context carry-through, preparation evidence, active listening
+3. TIMING AND CADENCE - where deals stall, velocity patterns observable from call content
+4. ACTION-RESPONSE PATTERNS - what behaviors open prospects up vs cause disengagement; focus on status quo objections, ROI questions, workforce concerns
+5. WHAT DRIVES WORST OUTCOMES - behaviors in failed/stalled calls, ranked by impact, with specific coaching recommendations tied to what this rep actually does
+
+Be specific to this rep's actual behaviors. Reference things they actually said or did. No generic sales advice.
+
+CALLS (${transcripts.length} of ${repCalls.length} total):
+${transcripts.join('\n\n---\n\n').slice(0,14000)}`;
+
+    const response=await callClaude([{role:'user',content:prompt}],'Write a clear, specific behavioral profile as a readable report.',3000);
+    document.getElementById('rep-results').innerHTML=`<div class="card"><div class="card-title">${rep?.firstName||''} ${rep?.lastName||''} - Behavioral Profile</div><div style="font-size:11px;color:var(--text3);margin-bottom:1rem;font-family:var(--mono)">${repCalls.length} calls in period - ${transcripts.length} analyzed - ${days} days</div><div class="prose">${response.replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/^/,'<p>').replace(/$/,'</p>')}</div></div>`;
+  }catch(e){msg.textContent='Error: '+e.message;msg.className='msg-err';}finally{hideLoading();}
+}
+
+// ==================== PIPELINE ====================
+async function loadPipeline() {
+  const el=document.getElementById('pipeline-results');
+  el.innerHTML='<span class="spinner"></span>';
+  try{
+    const r=await proxy('hubspot','/crm/v3/objects/deals?limit=50&properties=dealname,dealstage,amount,closedate,hs_deal_stage_probability&archived=false');
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.message||r.status);
+    const deals=data.results||[];
+    const byStage={};
+    deals.forEach(d=>{const s=d.properties.dealstage||'Unknown';if(!byStage[s])byStage[s]=[];byStage[s].push(d);});
+    el.innerHTML=Object.entries(byStage).map(([stage,sd])=>`
+      <div style="margin-bottom:1.5rem"><div class="card-title">${stage} <span style="color:var(--text3)">(${sd.length})</span></div>
+      <div class="card card-sm">${sd.map(d=>`<div class="rep-row">
+        <div><div style="font-size:13px;font-weight:500;color:var(--text)">${d.properties.dealname||'Unnamed'}</div>
+        <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">Close: ${d.properties.closedate?new Date(d.properties.closedate).toLocaleDateString():'?'} - ${d.properties.amount?'$'+Number(d.properties.amount).toLocaleString():'?'}</div></div>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <span class="badge badge-blue">${d.properties.hs_deal_stage_probability?Math.round(d.properties.hs_deal_stage_probability)+'%':'?'}</span>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('a-company').value='${(d.properties.dealname||'').replace(/'/g,'').split('-')[0].trim()}';showPage('analyze');lookupDeal()">Analyze</button>
+        </div></div>`).join('')}</div></div>`).join('')||'<div style="font-size:12px;color:var(--text3)">No open deals found.</div>';
+  }catch(e){el.innerHTML=`<div class="msg-err">${e.message}</div>`;}
+}
+
+// ==================== TEAM ====================
+async function loadTeam() {
+  const el=document.getElementById('team-results');
+  el.innerHTML='<span class="spinner"></span>';
+  try{
+    const r=await proxy('gong','/v2/users?limit=100');
+    const data=await r.json();
+    const users=(data.users||[]).filter(u=>u.active);
+    el.innerHTML=`<div class="card">${users.map(u=>`<div class="rep-row">
+      <div><div style="font-size:13px;font-weight:500;color:var(--text)">${u.firstName} ${u.lastName}</div>
+      <div style="font-size:11px;color:var(--text3);font-family:var(--mono)">${u.emailAddress} - ${u.title||'?'}</div></div>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <span class="badge ${u.settings?.webConferencesRecorded?'badge-green':'badge-gray'}">${u.settings?.webConferencesRecorded?'Recording on':'No recording'}</span>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('rep-select').value='${u.emailAddress}';showPage('rep')">Profile</button>
+      </div></div>`).join('')}</div>`;
+  }catch(e){el.innerHTML=`<div class="msg-err">${e.message}</div>`;}
+}
+
+// ==================== LOADING ====================
+function showLoading(msg,sub){
+  document.getElementById('loading-msg').textContent=msg||'Working...';
+  document.getElementById('loading-sub').textContent=sub||'';
+  document.getElementById('loading-overlay').classList.add('show');
+}
+function hideLoading(){document.getElementById('loading-overlay').classList.remove('show');}
+function setLoadingMsg(t){document.getElementById('loading-msg').textContent=t;}
+function setLoadingSub(t){document.getElementById('loading-sub').textContent=t;}
+function setLoading(msg,sub){setLoadingMsg(msg);if(sub)setLoadingSub(sub);}
+</script>
+</body>
+</html>
